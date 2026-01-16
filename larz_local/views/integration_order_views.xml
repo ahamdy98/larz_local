@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Form View -->
+    <record id="view_integration_order_form" model="ir.ui.view">
+        <field name="name">integration.order.form</field>
+        <field name="model">integration.order</field>
+        <field name="arch" type="xml">
+            <form string="Integration Order">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="config_id" />
+                            <field name="unit_id" />
+                            <field name="date" />
+                        </group>
+                        <group>
+                            <field name="sales_amount" />
+                            <field name="currency_id" invisible="1" />
+                            <field name="ref" />
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <!-- Tree View -->
+    <record id="view_integration_order_tree" model="ir.ui.view">
+        <field name="name">integration.order.tree</field>
+        <field name="model">integration.order</field>
+        <field name="arch" type="xml">
+            <tree string="Integration Orders">
+                <field name="date" />
+                <field name="config_id" />
+                <field name="unit_id" />
+                <field name="sales_amount" />
+                <field name="ref" />
+            </tree>
+        </field>
+    </record>
+    <!-- Search View -->
+    <record id="view_integration_order_search" model="ir.ui.view">
+        <field name="name">integration.order.search</field>
+        <field name="model">integration.order</field>
+        <field name="arch" type="xml">
+            <search string="Integration Order">
+                <field name="ref" />
+                <field name="config_id" />
+                <field name="date" />
+                <group string="Group By" expand="0">
+                    <filter name="group_by_config" string="Configuration" context="{'group_by': 'config_id'}" />
+                    <filter name="group_by_date" string="Date" context="{'group_by': 'date'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+    <!-- Action -->
+    <record id="action_integration_order" model="ir.actions.act_window">
+        <field name="name">Integration Orders</field>
+        <field name="res_model">integration.order</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first Integration Order</p>
+            <p>Orders are linked to Integration Configurations.</p>
+        </field>
+    </record>
+    <!-- Menu Item -->
+    <menuitem id="integration_order_menu" name="Orders" parent="integration_log_root" action="action_integration_order" sequence="20" />
+</odoo>

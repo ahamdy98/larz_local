@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_integration_log_user,integration.log user,model_integration_log,base.group_user,1,1,1,1
+access_integration_order_user,integration.order user,model_integration_order,base.group_user,1,1,1,1

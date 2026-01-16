@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Form View -->
+    <record id="view_integration_log_form" model="ir.ui.view">
+        <field name="name">integration.log.form</field>
+        <field name="model">integration.log</field>
+        <field name="arch" type="xml">
+            <form string="Integration Log">
+                <header>
+                    <button name="action_fetch_data" string="Fetch Data" type="object" class="oe_highlight" />
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="fetch_date" />
+                            <field name="config_id" />
+                            <field name="unit_id" />
+                            <field name="unit_name" />
+                            
+                        </group>
+                        <group>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="server_data" string="Server Data">
+                            <group>
+                                <group>
+                                    <field name="driver" />
+                                    <field name="host" />
+                                    <field name="server_name" />
+                                    <field name="table_name" />
+                                </group>
+                                <group>
+                                    <field name="database" />
+                                    <field name="uid" />
+                                    <field name="pwd" password="True" />
+                                </group>
+                            </group>
+                        </page>
+                        <page name="order_data" string="Order Data">
+                            <group>
+                                <group>
+                                    <field name="date" />
+                                    <field name="amount" />
+                                </group>
+                                <group>
+                                    <field name="ref" />
+                                </group>
+                            </group>
+                        </page>
+                        <page name="error" string="Error" invisible="not error_message">
+                            <group>
+                                <field name="error_message" />
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <!-- Tree View -->
+    <record id="view_integration_log_tree" model="ir.ui.view">
+        <field name="name">integration.log.tree</field>
+        <field name="model">integration.log</field>
+        <field name="arch" type="xml">
+            <tree string="Integration Logs">
+                <field name="fetch_date" />
+                <field name="unit_name" />
+                <field name="host" />
+                <field name="database" />
+                <field name="date" />
+                <field name="amount" />
+                <field name="ref" />
+                <field name="error_message" />
+            </tree> 
+        </field>
+    </record>
+    <!-- Search View -->
+    <record id="view_integration_log_search" model="ir.ui.view">
+        <field name="name">integration.log.search</field>
+        <field name="model">integration.log</field>
+        <field name="arch" type="xml">
+            <search string="Integration Log">
+                <field name="unit_name" />
+                <field name="host" />
+                <field name="database" />
+                <field name="ref" />
+                <filter name="success" string="Success" domain="[('error_message', '=', '')]" />
+                <filter name="failed" string="Failed" domain="[('error_message', '!=', '')]" />
+                <group string="Group By" expand="0">
+                    <filter name="group_by_unit" string="Unit" context="{'group_by': 'unit_name'}" />
+                    <filter name="group_by_date" string="Fetch Date" context="{'group_by': 'fetch_date:day'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+    <!-- Action -->
+    <record id="action_integration_log" model="ir.actions.act_window">
+        <field name="name">Integration Logs</field>
+        <field name="res_model">integration.log</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No integration logs yet</p>
+            <p>Click the "Fetch Data" button to retrieve data from the Integration Configuration API.</p>
+        </field>
+    </record>
+    <!-- Menu Items -->
+    <menuitem id="integration_log_root" name="Integration Receiver" sequence="100" />
+
+    <menuitem id="integration_log_menu" name="Integration Logs" parent="integration_log_root" action="action_integration_log" sequence="10" />
+</odoo>

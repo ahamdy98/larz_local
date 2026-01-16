@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Cron Job for Auto-Fetching Integration Data -->
+    <record id="cron_fetch_integration_data" model="ir.cron">
+        <field name="name">Fetch Integration Configuration Data</field>
+        <field name="model_id" ref="model_integration_log" />
+        <field name="state">code</field>
+        <field name="code">model.cron_fetch_integration_data()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+    </record>
+    <!-- Cron Job for Fetching SQL Data Every Hour -->
+    <record id="cron_fetch_sql_data" model="ir.cron">
+        <field name="name">Fetch SQL Data (Every Hour)</field>
+        <field name="model_id" ref="model_integration_log" />
+        <field name="state">code</field>
+        <field name="code">model.cron_fetch_data_from_sql()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+    </record>
+    <!-- Cron Job for Sending Orders to API Every 2 Hours -->
+    <record id="cron_send_orders_to_api" model="ir.cron">
+        <field name="name">Send Orders to Daily Sales API (Every 2 Hours)</field>
+        <field name="model_id" ref="model_integration_order" />
+        <field name="state">code</field>
+        <field name="code">model.cron_send_orders_to_api()</field>
+        <field name="interval_number">2</field>
+        <field name="interval_type">hours</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+    </record>
+</odoo>
