@@ -47,21 +47,34 @@ class IntegrationLog(models.Model):
 
     def fetch_data_from_sql(self):
         """Fetch data from SQL database using dynamic column names from Odoo fields"""
-        conn_str = (
-            f"DRIVER={self.driver};"
-            f"HOST={self.host};"
-            f"ServerName={self.server_name};"
-            f"DATABASE={self.database};"
-            f"UID={self.uid};"
-            f"PWD={self.pwd};"
-        )
+        
+        # Build connection string based on driver type
+        if 'SQL Server' in self.driver:
+            # SQL Server connection string (uses SERVER instead of HOST, no ServerName)
+            conn_str = (
+                f"DRIVER={self.driver};"
+                f"SERVER={self.host};"
+                f"DATABASE={self.database};"
+                f"UID={self.uid};"
+                f"PWD={self.pwd};"
+            )
+        else:
+            # SQL Anywhere connection string (uses HOST and ServerName)
+            conn_str = (
+                f"DRIVER={self.driver};"
+                f"HOST={self.host};"
+                f"ServerName={self.server_name};"
+                f"DATABASE={self.database};"
+                f"UID={self.uid};"
+                f"PWD={self.pwd};"
+            )
 
         # Get column names from Odoo fields
         ref_column = self.ref  # اسم الكولوم للـ Reference
         date_column = self.date  # اسم الكولوم للـ Date
         amount_column = self.amount  # اسم الكولوم للـ Amount
 
-        query = f"SELECT {ref_column}, {date_column}, {amount_column} FROM DBA.{self.table_name}"
+        query = f"SELECT {ref_column}, {date_column}, {amount_column} FROM {self.table_name}"
 
         try:
             conn = pyodbc.connect(conn_str)
