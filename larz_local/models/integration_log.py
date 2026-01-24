@@ -43,6 +43,16 @@ class IntegrationLog(models.Model):
     # API Configuration
     error_message = fields.Text(string='Error Message', readonly=True)
 
+    # Date Configuration (New)
+    date_mode = fields.Selection([
+        ('single', 'Single Date Column'),
+        ('range', 'Open/Close Date Columns')
+    ], string='Date Mode', default='single', readonly=True)
+    check_open_field = fields.Char(string='Check Open Column', readonly=True)
+    check_close_field = fields.Char(string='Check Close Column', readonly=True)
+
+
+
 
 
     def fetch_data_from_sql(self):
@@ -50,7 +60,7 @@ class IntegrationLog(models.Model):
         
         # Build connection string based on driver type
         if 'SQL Server' in self.driver:
-            # SQL Server connection string (uses SERVER instead of HOST, no ServerName)
+            # SQL Server connection string
             conn_str = (
                 f"DRIVER={self.driver};"
                 f"SERVER={self.host};"
@@ -59,7 +69,7 @@ class IntegrationLog(models.Model):
                 f"PWD={self.pwd};"
             )
         else:
-            # SQL Anywhere connection string (uses HOST and ServerName)
+            # SQL Anywhere connection string
             conn_str = (
                 f"DRIVER={self.driver};"
                 f"HOST={self.host};"
@@ -70,11 +80,30 @@ class IntegrationLog(models.Model):
             )
 
         # Get column names from Odoo fields
-        ref_column = self.ref  # اسم الكولوم للـ Reference
-        date_column = self.date  # اسم الكولوم للـ Date
-        amount_column = self.amount  # اسم الكولوم للـ Amount
+        ref_column = self.ref
+        amount_column = self.amount
 
-        query = f"SELECT {ref_column}, {date_column}, {amount_column} FROM {self.table_name}"
+        # Determine columns to select based on mode
+        select_columns = [ref_column, amount_column]
+        date_columns = []
+        
+        if self.date_mode == 'range':
+            # In Range Mode, we fetch CheckOpen and CheckClose columns
+            check_open_col = self.check_open_field
+            check_close_col = self.check_close_field
+            if check_open_col:
+                select_columns.append(check_open_col)
+            if check_close_col:
+                select_columns.append(check_close_col)
+        else:
+            # In Single Mode (Default), we fetch the comma-separated date columns
+            date_columns_str = self.date or ''
+            date_columns = [d.strip() for d in date_columns_str.split(',') if d.strip()]
+            select_columns.extend(date_columns)
+
+        # Construct query
+        select_part = ", ".join(select_columns)
+        query = f"SELECT {select_part} FROM {self.table_name}"
 
         try:
             conn = pyodbc.connect(conn_str)
@@ -86,41 +115,70 @@ class IntegrationLog(models.Model):
             records = cursor.fetchall()
 
             for row in records:
-                # Convert row to dictionary using column names
+                # Convert row to dictionary
                 row_dict = dict(zip(columns, row))
                 
                 ref_value = row_dict.get(ref_column)
-                date_value = row_dict.get(date_column)
                 amount_value = row_dict.get(amount_column) or 0.0
+                
+                # Determine date values based on mode
+                date_value = None
+                check_open_value = None
+                check_close_value = None
 
-                # Create order record in integration.order model
+                if self.date_mode == 'range':
+                    # Range Mode Logic
+                    if self.check_open_field:
+                        check_open_value = row_dict.get(self.check_open_field)
+                    if self.check_close_field:
+                        check_close_value = row_dict.get(self.check_close_field)
+                    
+                    # Primary date is Check Open
+                    if check_open_value:
+                        date_value = check_open_value.date() if hasattr(check_open_value, 'date') else check_open_value
+                    # If check open is missing but check close exists, use check close
+                    elif check_close_value:
+                        date_value = check_close_value.date() if hasattr(check_close_value, 'date') else check_close_value
+
+                else:
+                    # Single Mode Logic (Legacy)
+                    for d_col in date_columns:
+                        val = row_dict.get(d_col)
+                        if val:
+                            date_value = val
+                            break
+                    
+                    # IMPORTANT: Removed "if not date_value: continue" to allow missing dates
+
+                # Create or Update order record
+                # UPDATED IDENTITY: Search only by 'ref' and 'config_id'
                 existing_check = self.env['integration.order'].search([
                     ('ref', '=', ref_value),
-                    ('date', '=', date_value),
                     ('config_id', '=', self.id)
                 ], limit=1)
 
-                if existing_check:
-                    old_amount = existing_check.sales_amount or 0.0
-                    if float(amount_value) > old_amount:
-                        existing_check.write({
-                            'ref': ref_value,
-                            'date': date_value,
-                            'sales_amount': float(amount_value),
-                        })
-                    continue
-
-                self.env['integration.order'].create({
-                    'config_id': self.id,
-                    'ref': ref_value,
-                    'date': date_value,
+                vals = {
                     'sales_amount': float(amount_value),
-                })
+                    'date': date_value, 
+                    'check_open': check_open_value,
+                    'check_close': check_close_value,
+                }
+
+                if existing_check:
+                    # Update logic: Always update if we have new info or if amount increased
+                    # For simplicity and robustness like Kov, we update essential fields
+                    existing_check.write(vals)
+                else:
+                    vals.update({
+                        'config_id': self.id,
+                        'ref': ref_value,
+                    })
+                    self.env['integration.order'].create(vals)
 
             cursor.close()
             conn.close()
         except Exception as e:
-            raise Warning(f"خطأ في الاتصال بقاعدة البيانات: {e}")
+            raise UserError(f"خطأ في الاتصال بقاعدة البيانات: {e}")
 
 
     @api.depends('unit_name', 'fetch_date')
@@ -144,10 +202,8 @@ class IntegrationLog(models.Model):
             if data.get('data'):
                 for config in data['data']:
                     existing_record = self.search([('config_id', '=', config.get('id'))])
-                    if not existing_record:
-                        self.create({
+                    vals = {
                         'fetch_date': fields.Datetime.now(),
-                        'config_id': config.get('id'),
                         'unit_id': config.get('unit_id'),
                         'unit_name': config.get('unit_name'),
                         'driver': config.get('driver'),
@@ -160,23 +216,16 @@ class IntegrationLog(models.Model):
                         'amount': config.get('amount'),
                         'ref': config.get('ref'),
                         'table_name': config.get('table_name'),
-                    })
+                        'date_mode': config.get('date_mode'),
+                        'check_open_field': config.get('check_open_field'),
+                        'check_close_field': config.get('check_close_field'),
+                    }
+                    
+                    if not existing_record:
+                        vals['config_id'] = config.get('id')
+                        self.create(vals)
                     else:
-                        existing_record.write({
-                            'fetch_date': fields.Datetime.now(),
-                            'unit_id': config.get('unit_id'),
-                            'unit_name': config.get('unit_name'),
-                            'driver': config.get('driver'),
-                            'host': config.get('host'),
-                            'server_name': config.get('server_name'),
-                            'database': config.get('database'),
-                            'uid': config.get('uid'),
-                            'pwd': config.get('pwd'),
-                            'date': config.get('date'),
-                            'amount': config.get('amount'),
-                            'ref': config.get('ref'),
-                            'table_name': config.get('table_name'),
-                        })
+                        existing_record.write(vals)
                 
         except requests.exceptions.RequestException as e:
             error_msg = str(e)
@@ -196,39 +245,30 @@ class IntegrationLog(models.Model):
             if data.get('data'):
                 for config in data['data']:
                     existing_record = self.search([('config_id', '=', config.get('id'))])
+                    vals = {
+                        'fetch_date': fields.Datetime.now(),
+                        'unit_id': config.get('unit_id'),
+                        'unit_name': config.get('unit_name'),
+                        'driver': config.get('driver'),
+                        'host': config.get('host'),
+                        'server_name': config.get('server_name'),
+                        'database': config.get('database'),
+                        'uid': config.get('uid'),
+                        'pwd': config.get('pwd'),
+                        'date': config.get('date'),
+                        'amount': config.get('amount'),
+                        'ref': config.get('ref'),
+                        'table_name': config.get('table_name'),
+                        'date_mode': config.get('date_mode'),
+                        'check_open_field': config.get('check_open_field'),
+                        'check_close_field': config.get('check_close_field'),
+                    }
+
                     if not existing_record:
-                        self.create({
-                            'fetch_date': fields.Datetime.now(),
-                            'config_id': config.get('id'),
-                            'unit_id': config.get('unit_id'),
-                            'unit_name': config.get('unit_name'),
-                            'driver': config.get('driver'),
-                            'host': config.get('host'),
-                            'server_name': config.get('server_name'),
-                            'database': config.get('database'),
-                            'uid': config.get('uid'),
-                            'pwd': config.get('pwd'),
-                            'date': config.get('date'),
-                            'amount': config.get('amount'),
-                            'ref': config.get('ref'),
-                            'table_name': config.get('table_name'),
-                        })
+                        vals['config_id'] = config.get('id')
+                        self.create(vals)
                     else:
-                        existing_record.write({
-                            'fetch_date': fields.Datetime.now(),
-                            'unit_id': config.get('unit_id'),
-                            'unit_name': config.get('unit_name'),
-                            'driver': config.get('driver'),
-                            'host': config.get('host'),
-                            'server_name': config.get('server_name'),
-                            'database': config.get('database'),
-                            'uid': config.get('uid'),
-                            'pwd': config.get('pwd'),
-                            'date': config.get('date'),
-                            'amount': config.get('amount'),
-                            'ref': config.get('ref'),
-                            'table_name': config.get('table_name'),
-                        })
+                        existing_record.write(vals)
                 
                 _logger.info(f"Cron: Successfully fetched {len(data['data'])} integration configs")
             else:

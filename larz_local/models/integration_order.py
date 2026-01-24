@@ -16,7 +16,9 @@ class IntegrationOrder(models.Model):
     config_id = fields.Many2one('integration.log', string='Integration Configuration', required=True, ondelete='restrict')
     unit_id = fields.Integer(string='Unit ID', related='config_id.unit_id', store=True)
     
-    date = fields.Date(string='Date', required=True, default=fields.Date.today, tracking=True)
+    date = fields.Date(string='Date', required=False, default=fields.Date.today, tracking=True)
+    check_open = fields.Datetime(string='Check Open')
+    check_close = fields.Datetime(string='Check Close')
     sales_amount = fields.Monetary(string='Sales Amount', required=True, currency_field='currency_id', tracking=True)
     currency_id = fields.Many2one('res.currency', string='Currency', default=lambda self: self.env.company.currency_id)
     ref = fields.Char(string='Reference', required=True, tracking=True)
