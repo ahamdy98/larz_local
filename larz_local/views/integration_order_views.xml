@@ -12,6 +12,8 @@
                             <field name="config_id" />
                             <field name="unit_id" />
                             <field name="date" />
+                            <field name="check_open" />
+                            <field name="check_close" />
                         </group>
                         <group>
                             <field name="sales_amount" />
@@ -30,6 +32,8 @@
         <field name="arch" type="xml">
             <tree string="Integration Orders">
                 <field name="date" />
+                <field name="check_open" optional="show" />
+                <field name="check_close" optional="hide" />
                 <field name="config_id" />
                 <field name="unit_id" />
                 <field name="sales_amount" />

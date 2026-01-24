@@ -16,35 +16,29 @@
                             <field name="config_id" />
                             <field name="unit_id" />
                             <field name="unit_name" />
-                            
                         </group>
-                        <group>
-                        </group>
+                        <group />
                     </group>
                     <notebook>
-                        <page name="server_data" string="Server Data">
+                        <page name="configuration" string="Configuration">
                             <group>
-                                <group>
+                                <group string="Server Data">
                                     <field name="driver" />
                                     <field name="host" />
                                     <field name="server_name" />
-                                    <field name="table_name" />
-                                </group>
-                                <group>
                                     <field name="database" />
                                     <field name="uid" />
                                     <field name="pwd" password="True" />
                                 </group>
-                            </group>
-                        </page>
-                        <page name="order_data" string="Order Data">
-                            <group>
-                                <group>
-                                    <field name="date" />
-                                    <field name="amount" />
-                                </group>
-                                <group>
+                                <group string="Data Mapping">
+                                    <field name="table_name" />
+                                    <separator string="Column Mapping" />
                                     <field name="ref" />
+                                    <field name="amount" />
+                                    <field name="date_mode" widget="radio" options="{'horizontal': true}" />
+                                    <field name="date" string="Date Column" invisible="date_mode == 'range'" />
+                                    <field name="check_open_field" invisible="date_mode == 'single'" />
+                                    <field name="check_close_field" invisible="date_mode == 'single'" />
                                 </group>
                             </group>
                         </page>
@@ -69,10 +63,11 @@
                 <field name="host" />
                 <field name="database" />
                 <field name="date" />
+                <field name="date_mode" optional="hide" />
                 <field name="amount" />
                 <field name="ref" />
                 <field name="error_message" />
-            </tree> 
+            </tree>
         </field>
     </record>
     <!-- Search View -->
