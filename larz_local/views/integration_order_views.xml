@@ -17,6 +17,8 @@
                         </group>
                         <group>
                             <field name="sales_amount" />
+                            <field name="tax_amount" />
+                            <field name="total_amount" />
                             <field name="currency_id" invisible="1" />
                             <field name="ref" />
                         </group>
@@ -37,6 +39,8 @@
                 <field name="config_id" />
                 <field name="unit_id" />
                 <field name="sales_amount" />
+                <field name="tax_amount" />
+                <field name="total_amount" />
                 <field name="ref" />
             </tree>
         </field>

@@ -19,7 +19,9 @@ class IntegrationOrder(models.Model):
     date = fields.Date(string='Date', required=False, default=fields.Date.today, tracking=True)
     check_open = fields.Datetime(string='Check Open')
     check_close = fields.Datetime(string='Check Close')
-    sales_amount = fields.Monetary(string='Sales Amount', required=True, currency_field='currency_id', tracking=True)
+    sales_amount = fields.Monetary(string='Amount Subtotal', required=True, currency_field='currency_id', tracking=True)
+    tax_amount = fields.Monetary(string='Tax Amount', currency_field='currency_id', tracking=True)
+    total_amount = fields.Monetary(string='Total Amount', currency_field='currency_id', tracking=True)
     currency_id = fields.Many2one('res.currency', string='Currency', default=lambda self: self.env.company.currency_id)
     ref = fields.Char(string='Reference', required=True, tracking=True)
     
@@ -46,7 +48,7 @@ class IntegrationOrder(models.Model):
         
         # Find orders that are less than 1 month old
         orders = self.search([
-            ('date', '>=', one_month_ago),
+            ('date', '>=', one_month_ago),('is_synced','=',False)
         ])
         
         success_count = 0
@@ -62,10 +64,12 @@ class IntegrationOrder(models.Model):
                 "unit_id": order.unit_id,
                 "date": str(order.date),
                 "sales_amount": order.sales_amount,
+                "tax_amount": order.tax_amount,
+                "total_amount": order.total_amount,
                 "ref": order.ref,
             })
         
-        if not records_data:
+        if not records_data:orders
             _logger.info("Cron: No orders to sync (less than 1 month old)")
             return
         

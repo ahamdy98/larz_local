@@ -35,6 +35,8 @@
                                     <separator string="Column Mapping" />
                                     <field name="ref" />
                                     <field name="amount" />
+                                    <field name="tax_field" />
+                                    <field name="total_field" />
                                     <field name="date_mode" widget="radio" options="{'horizontal': true}" />
                                     <field name="date" string="Date Column" invisible="date_mode == 'range'" />
                                     <field name="check_open_field" invisible="date_mode == 'single'" />

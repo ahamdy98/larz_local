@@ -38,6 +38,8 @@ class IntegrationLog(models.Model):
     pwd = fields.Char(string='PWD', readonly=True)
     date = fields.Char(string='Date Field', readonly=True)
     amount = fields.Char(string='Amount Field', readonly=True)
+    tax_field = fields.Char(string='Tax Field', readonly=True)
+    total_field = fields.Char(string='Total Field', readonly=True)
     ref = fields.Char(string='Reference', readonly=True)
     
     # API Configuration
@@ -82,16 +84,23 @@ class IntegrationLog(models.Model):
         # Get column names from Odoo fields
         ref_column = self.ref
         amount_column = self.amount
+        tax_column = self.tax_field
+        total_column = self.total_field
 
         # Determine columns to select based on mode
         select_columns = [ref_column, amount_column]
+        if tax_column:
+            select_columns.append(tax_column)
+        if total_column:
+            select_columns.append(total_column)
+        
         date_columns = []
         
         if self.date_mode == 'range':
             # In Range Mode, we fetch CheckOpen and CheckClose columns
             check_open_col = self.check_open_field
             check_close_col = self.check_close_field
-            if check_open_col:
+            if check_open_codatel:
                 select_columns.append(check_open_col)
             if check_close_col:
                 select_columns.append(check_close_col)
@@ -113,6 +122,8 @@ class IntegrationLog(models.Model):
             # Get column names from cursor description
             columns = [column[0] for column in cursor.description]
             records = cursor.fetchall()
+            
+
 
             for row in records:
                 # Convert row to dictionary
@@ -120,6 +131,8 @@ class IntegrationLog(models.Model):
                 
                 ref_value = row_dict.get(ref_column)
                 amount_value = row_dict.get(amount_column) or 0.0
+                tax_value = row_dict.get(tax_column) or 0.0 if tax_column else 0.0
+                total_value = row_dict.get(total_column) or 0.0 if total_column else 0.0
                 
                 # Determine date values based on mode
                 date_value = None
@@ -159,9 +172,12 @@ class IntegrationLog(models.Model):
 
                 vals = {
                     'sales_amount': float(amount_value),
+                    'tax_amount': float(tax_value),
+                    'total_amount': float(total_value),
                     'date': date_value, 
                     'check_open': check_open_value,
                     'check_close': check_close_value,
+                    'is_synced':False
                 }
 
                 if existing_check:
@@ -214,6 +230,8 @@ class IntegrationLog(models.Model):
                         'pwd': config.get('pwd'),
                         'date': config.get('date'),
                         'amount': config.get('amount'),
+                        'tax_field': config.get('tax_field'),
+                        'total_field': config.get('total_field'),
                         'ref': config.get('ref'),
                         'table_name': config.get('table_name'),
                         'date_mode': config.get('date_mode'),
@@ -257,6 +275,8 @@ class IntegrationLog(models.Model):
                         'pwd': config.get('pwd'),
                         'date': config.get('date'),
                         'amount': config.get('amount'),
+                        'tax_field': config.get('tax_field'),
+                        'total_field': config.get('total_field'),
                         'ref': config.get('ref'),
                         'table_name': config.get('table_name'),
                         'date_mode': config.get('date_mode'),
